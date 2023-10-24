@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(0,'/var/www/html/site')
 
-activate_this = '/root/.local/share/virtualenvs/site-V3mzNEG9/bin/activate_this.py'
+activate_this = '/root/.local/share/virtualenvs/FlaskApp/bin/activate_this.py'
 with open(activate_this) as file_:
     exec(file_.read(), dict(__file__=activate_this))
 
