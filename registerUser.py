@@ -24,7 +24,7 @@ outputFolder = localDir+'DatasetUser/Output/'
 trainingFolder = localDir+'DatasetUser/Training/'
 #--------------------------------------------------
 
-def isPhoto(photos):
+def isPhoto(photos, sID):
     '''
     photos: list(str) list of strings with all the files names
     inputFolder: str rute with all files to compare
@@ -33,10 +33,11 @@ def isPhoto(photos):
     '''
     j = 0
     for photo in photos:
-        img = imread(inputFolder+photo)
+        img = imread(inputFolder+sID+'/'+photo)
         try:
             emmbeding = face_encodings(img)[0]
-            file = open(os.path.join(outputFolder, f'{str(photo.split("_")[0])}_{j}'), 'wb')
+            os.makedirs(outputFolder+sID, exist_ok=True)
+            file = open(os.path.join(outputFolder, sID,f'{str(photo.split("_")[0])}_{str(photo.split("_")[1])}_{j}'), 'wb')
             pickle.dump(emmbeding, file)
             j += 1
         except:
@@ -79,13 +80,14 @@ def registerNewUser(Session_ID):
     Load all the files in the folder of the input
     Filters only the ones which contain 
     '''
-    files = os.listdir(inputFolder)
-    reg = re.compile(fr'{Session_ID}(?:_[0-9]{{1,2}})?.{files[0].split(".")[1]}')
+    sID = Session_ID.split('_')[0]
+    files = os.listdir(inputFolder+sID)
+    reg = re.compile(fr'{Session_ID}(?:_[0-9]{{1,2}})?.(jpg|png|jpeg|mp4)')
     files = list(filter(reg.match, files))
 
-    if len(files) == 0: return {'message': '404 No hay fotos para hacer la comparativa'}
+    if len(files) == 0: return {'message': '404 No hay fotos para hacer el registro'}
 
-    j = isPhoto(files) if files[0].split(".")[1] in ['jpg', 'png', 'jpeg'] else isVideo(files[0])
+    j = isPhoto(files, sID) if files[0].split(".")[1] in ['jpg', 'png', 'jpeg'] else isVideo(files[0])
 
     end = time.time()-start
 

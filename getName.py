@@ -9,18 +9,20 @@ import json
 import os
 import re
 
-#-------------Log_Variables-----------------
+#---------------------Log_Variables-----------------------------
 start = time.time()
 version = "1.0.0"
 today = datetime.now()
 today = today.strftime(r"%d-%m-%Y %H:%M:%S")
-status = {'unknownPerson':'No identificado', 'moreThanOnePerson': 'Muchas personas en la imagen', 'noPersonsFound': 'No se encontraron personas'}
-global log
+status = {'unknownPerson':'No identificado', \
+        'moreThanOnePerson': 'Muchas personas en la imagen', \
+        'noPersonsFound': 'No se encontraron personas'}
 log = {}
-#--------------------------------------------
+data = {}
+fr_ID = ''
+#---------------------------------------------------------------
 
 #-------------Rute_Variables-----------------
-global inputFolder, dbFolder
 localDir = '/home/MLP/FRVelneo/'
 inputFolder = localDir+'DatasetLogIn/'
 dbFolder = localDir+'DatasetUser/Output'
@@ -57,11 +59,11 @@ def recognize(img, dbPath: str) -> str:
         j+=1
 
     if match:
-        return dbDir[j - 1].split("_")[0]
+        return str(dbDir[j - 1].split("_")[0]+'_'+dbDir[j-1].split("_")[1])
     else:
         return 'unknownPerson'
 
-def isPhoto(photos: list):
+def isPhoto(photos: list, sessionID: str):
     '''
     photos: list(str) list of strings with all the files names
     inputFolder: str rute with all files to compare
@@ -71,9 +73,9 @@ def isPhoto(photos: list):
     Then compares the photos one by one with the database to obtain the most repeated name
     '''
     for photo in photos:
-        img = imread(inputFolder+photo)
-        fr = recognize(img, dbFolder)
-        log.update({f'{fr}': log[f'{fr}']+1}) if fr in log.keys() and fr != "noPersonsFound" else log.update({f'{fr}': 1})
+        img = imread(inputFolder+sessionID+'/'+photo)
+        fr = recognize(img, dbFolder+'/'+sessionID)
+        log.update({f'{fr}': log[f'{fr}']+1}) if fr in log.keys() else log.update({f'{fr}': 1})
         #os.remove(inputFolder+photo)
 
 def isVideo(video: str):
@@ -104,16 +106,18 @@ def isVideo(video: str):
     #os.remove(inputFolder+video)
 
 def getUserName(Session_ID):
-    files = os.listdir(inputFolder)
+    sID = Session_ID.split('_')
+    files = os.listdir(inputFolder+sID[0])
     if len(files) == 0: return{'message': '404 no se encuentran imagenes para inicio de sesion'}
-    reg = re.compile(fr'{Session_ID}(?:_[0-9]{{1,2}})?.{files[0].split(".")[1]}')
+    reg = re.compile(fr'{sID[0]}_{sID[1]}(?:_[0-9]{{1,2}})?.(jpg|png|jpeg|mp4)')
     files = list(filter(reg.match, files))
     if len(files) == 0: return {'message': '404 no se encuentran imagenes de dicha sesion para procesar'} 
-    isPhoto(files) if files[0].split(".")[1] in ['jpg', 'png', 'jpeg'] else isVideo(files[0])
+    isPhoto(files, sID[0]) if files[0].split(".")[1] in ['jpg', 'png', 'jpeg'] else isVideo(files[0])
 
     end = time.time()-start
-
-    data = {'FR_ID': max(log, key=log.get), 'version': version, 'fecha': today, 'tiempoDeInferencia': end, 'message': '200 Proceso ejecutado de forma adecuada', 'status': 'Identificado' if max(log, key=log.get) not in status.keys() else status[max(log, key=log.get)]}
+    fr_ID = max(log, key=log.get)
+    data = {'FR_ID':  fr_ID,'version': version, 'fecha': today, 'tiempoDeInferencia': end, 'message': '200 Proceso ejecutado de forma adecuada', 'status': 'Identificado' if max(log, key=log.get) not in status.keys() else status[max(log, key=log.get)]}
     with open(f'{localDir}Logs/Inferencia/{files[0].split("_")[0]}.json', 'w') as newfile:
         newfile.write(json.dumps(data))
+    log.clear()
     return data
